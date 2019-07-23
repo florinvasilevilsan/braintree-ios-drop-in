@@ -66,132 +66,167 @@ static BOOL _vaultedCardAppearAnalyticSent = NO;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    [self showLoadingScreen:YES];
     
     self.view.translatesAutoresizingMaskIntoConstraints = NO;
-    
-    self.navigationItem.leftBarButtonItem = [[BTUIKBarButtonItem alloc] initWithTitle:BTUIKLocalizedString(CANCEL_ACTION) style:UIBarButtonItemStylePlain target:nil action:nil];
 
-    self.title = BTUIKLocalizedString(SELECT_PAYMENT_LABEL);
-    
-    self.view.translatesAutoresizingMaskIntoConstraints = false;
-    self.view.backgroundColor = [UIColor clearColor];
-    
-    self.scrollView = [[UIScrollView alloc] init];
-    self.scrollView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.scrollView setAlwaysBounceVertical:NO];
-    self.scrollView.scrollEnabled = YES;
-    [self.view addSubview:self.scrollView];
-    
-    self.scrollViewContentWrapper = [[UIView alloc] init];
-    self.scrollViewContentWrapper.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.scrollView addSubview:self.scrollViewContentWrapper];
-    
-    self.stackView = [self newStackView];
-    [self.scrollViewContentWrapper addSubview:self.stackView];
-    
-    self.view.translatesAutoresizingMaskIntoConstraints = false;
-    self.view.backgroundColor = [UIColor clearColor];
-    
-    NSDictionary *viewBindings = @{@"stackView": self.stackView,
-                                   @"scrollView": self.scrollView,
-                                   @"scrollViewContentWrapper": self.scrollViewContentWrapper};
-    
-    [self.scrollView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor].active = YES;
-    [self.scrollView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor].active = YES;
-    
-    [self.scrollView.topAnchor constraintEqualToAnchor:self.view.topAnchor].active = YES;
-    [self.scrollView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor].active = YES;
-    
-    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[scrollViewContentWrapper]|"
-                                                                      options:0
-                                                                      metrics:[BTUIKAppearance metrics]
-                                                                        views:viewBindings]];
-    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[scrollViewContentWrapper(scrollView)]|"
-                                                                      options:0
-                                                                      metrics:[BTUIKAppearance metrics]
-                                                                        views:viewBindings]];
-    
-    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-(0)-[stackView]|"
-                                                                      options:0
-                                                                      metrics:[BTUIKAppearance metrics]
-                                                                        views:viewBindings]];
-    
-    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(VERTICAL_SECTION_SPACE)-[stackView]-(VERTICAL_FORM_SPACE_TIGHT)-|"
-                                                                      options:0
-                                                                      metrics:[BTUIKAppearance metrics]
-                                                                        views:viewBindings]];
-    
-    NSLayoutConstraint *heightConstraint;
-    self.vaultedPaymentsHeader = [self sectionHeaderLabelWithString:BTUIKLocalizedString(RECENT_LABEL)];
-    self.vaultedPaymentsHeader.translatesAutoresizingMaskIntoConstraints = NO;
+    BTPayPalDriver *driver = [[BTPayPalDriver alloc] initWithAPIClient:self.apiClient];
+    driver.viewControllerPresentingDelegate = self.delegate;
+    driver.appSwitchDelegate = self.delegate;
 
-    self.vaultedPaymentsLabelContainerStackView = [self newStackView];
-    self.vaultedPaymentsLabelContainerStackView.axis  = UILayoutConstraintAxisHorizontal;
-    self.vaultedPaymentsLabelContainerStackView.layoutMargins = UIEdgeInsetsMake(0, [BTUIKAppearance horizontalFormContentPadding], 0, [BTUIKAppearance horizontalFormContentPadding]);
-    self.vaultedPaymentsLabelContainerStackView.layoutMarginsRelativeArrangement = true;
+    BTPayPalRequest *payPalRequest = self.dropInRequest.payPalRequest;
+    if (payPalRequest == nil) {
+        payPalRequest = [[BTPayPalRequest alloc] init];
+    }
 
-    [self.vaultedPaymentsLabelContainerStackView addArrangedSubview:self.vaultedPaymentsHeader];
-
-    self.vaultedPaymentsEditButton = [UIButton new];
-    self.vaultedPaymentsEditButton.hidden = YES;
-    NSAttributedString *normalVaultedPaymentsEditButton = [[NSAttributedString alloc] initWithString:BTUIKLocalizedString(EDIT_ACTION)
-                                                                                          attributes:@{NSForegroundColorAttributeName:[BTUIKAppearance sharedInstance].tintColor,
-                                                                                                       NSFontAttributeName:[[BTUIKAppearance sharedInstance].font fontWithSize:UIFont.systemFontSize]}];
-    [self.vaultedPaymentsEditButton setAttributedTitle:normalVaultedPaymentsEditButton forState:UIControlStateNormal];
-    NSAttributedString *highlightVaultedPaymentsEditButton = [[NSAttributedString alloc] initWithString:BTUIKLocalizedString(EDIT_ACTION)
-                                                                                             attributes:@{NSForegroundColorAttributeName:[BTUIKAppearance sharedInstance].highlightedTintColor,
-                                                                                                          NSFontAttributeName:[[BTUIKAppearance sharedInstance].font fontWithSize:UIFont.systemFontSize]}];
-    [self.vaultedPaymentsEditButton setAttributedTitle:highlightVaultedPaymentsEditButton forState:UIControlStateHighlighted];
-    NSAttributedString *disabledVaultedPaymentsEditButton = [[NSAttributedString alloc] initWithString:BTUIKLocalizedString(EDIT_ACTION)
-                                                                                            attributes:@{NSForegroundColorAttributeName:[BTUIKAppearance sharedInstance].disabledColor,
-                                                                                                         NSFontAttributeName:[[BTUIKAppearance sharedInstance].font fontWithSize:UIFont.systemFontSize]}];
-    [self.vaultedPaymentsEditButton setAttributedTitle:disabledVaultedPaymentsEditButton forState:UIControlStateDisabled];
-    [self.vaultedPaymentsEditButton sizeToFit];
-    [self.vaultedPaymentsEditButton layoutIfNeeded];
-    [self.vaultedPaymentsEditButton addTarget:self action:@selector(vaultedPaymentsEditButtonPressed) forControlEvents:UIControlEventTouchUpInside];
-    [self.vaultedPaymentsLabelContainerStackView addArrangedSubview:self.vaultedPaymentsEditButton];
-
-    [self.stackView addArrangedSubview:self.vaultedPaymentsLabelContainerStackView];
-    _vaultedCardAppearAnalyticSent = NO;
-
-    UICollectionViewFlowLayout *flowLayout = [[UICollectionViewFlowLayout alloc] init];
-    [flowLayout setScrollDirection: UICollectionViewScrollDirectionHorizontal];
-    self.savedPaymentMethodsCollectionView = [[UICollectionView alloc] initWithFrame:CGRectZero collectionViewLayout:flowLayout];
-    self.savedPaymentMethodsCollectionView.translatesAutoresizingMaskIntoConstraints = NO;
-    self.savedPaymentMethodsCollectionView.delegate = self;
-    self.savedPaymentMethodsCollectionView.dataSource = self;
-    [self.savedPaymentMethodsCollectionView registerClass:[BTUIPaymentMethodCollectionViewCell class] forCellWithReuseIdentifier:@"BTUIPaymentMethodCollectionViewCellIdentifier"];
-    self.savedPaymentMethodsCollectionView.backgroundColor = [UIColor clearColor];
-    self.savedPaymentMethodsCollectionView.showsHorizontalScrollIndicator = NO;
-    heightConstraint = [self.savedPaymentMethodsCollectionView.heightAnchor constraintEqualToConstant:SAVED_PAYMENT_METHODS_COLLECTION_HEIGHT + [BTUIKAppearance verticalFormSpace]];
-    // Setting the prioprity is necessary to avoid autolayout errors when UIStackView rotates
-    heightConstraint.priority = UILayoutPriorityDefaultHigh;
-    heightConstraint.active = YES;
-    [self.stackView addArrangedSubview:self.savedPaymentMethodsCollectionView];
-
-    self.paymentOptionsHeader = [self sectionHeaderLabelWithString:BTUIKLocalizedString(OTHER_LABEL)];
-    self.paymentOptionsHeader.translatesAutoresizingMaskIntoConstraints = NO;
-
-    self.paymentOptionsLabelContainerStackView = [self newStackView];
-    self.paymentOptionsLabelContainerStackView.layoutMargins = UIEdgeInsetsMake(0, [BTUIKAppearance horizontalFormContentPadding], 0, [BTUIKAppearance horizontalFormContentPadding]);
-
-    self.paymentOptionsLabelContainerStackView.layoutMarginsRelativeArrangement = true;
-
-    [self.paymentOptionsLabelContainerStackView addArrangedSubview:self.paymentOptionsHeader];
-    [self addSpacerToStackView:self.paymentOptionsLabelContainerStackView size:[BTUIKAppearance verticalFormSpaceTight] beforeView:nil];
-    [self.stackView addArrangedSubview:self.paymentOptionsLabelContainerStackView];
+    // One time payment if an amount is present
+    if (payPalRequest.amount) {
+        [driver requestOneTimePayment:payPalRequest completion:^(BTPayPalAccountNonce * _Nullable payPalAccount, NSError * _Nullable error) {
+            if (self.delegate) {
+                if(payPalAccount != nil || error != nil) {
+                    [self.delegate selectionCompletedWithPaymentMethodType:BTUIKPaymentOptionTypePayPal nonce:payPalAccount error:error];
+                }
+                else {
+                  [self.delegate cancelEvent];
+                }
+            }
+        }];
+    } else {
+        [driver requestBillingAgreement:payPalRequest completion:^(BTPayPalAccountNonce * _Nullable payPalAccount, NSError * _Nullable error) {
+            if (self.delegate) {
+                if(payPalAccount != nil || error != nil) {
+                    [self.delegate selectionCompletedWithPaymentMethodType:BTUIKPaymentOptionTypePayPal nonce:payPalAccount error:error];
+                }
+                else {
+                   [self.delegate cancelEvent];
+                }
+            }
+        }];
+    }
     
-    self.paymentOptionsTableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
-    [self.paymentOptionsTableView addObserver:self forKeyPath:@"contentSize" options:0 context:NULL];
-    self.paymentOptionsTableView.backgroundColor = [UIColor clearColor];
-    [self.paymentOptionsTableView registerClass:[BTDropInPaymentSeletionCell class] forCellReuseIdentifier:@"BTDropInPaymentSeletionCell"];
-    self.paymentOptionsTableView.translatesAutoresizingMaskIntoConstraints = NO;
-    self.paymentOptionsTableView.delegate = self;
-    self.paymentOptionsTableView.dataSource = self;
-    self.paymentOptionsTableView.separatorStyle = UITableViewCellSeparatorStyleNone;
-    [self.paymentOptionsTableView setAlwaysBounceVertical:NO];
+    //self.navigationItem.leftBarButtonItem = [[BTUIKBarButtonItem alloc] initWithTitle:BTUIKLocalizedString(CANCEL_ACTION) style:UIBarButtonItemStylePlain target:nil action:nil];
 
-    [self.stackView addArrangedSubview:self.paymentOptionsTableView];
+    //self.title = BTUIKLocalizedString(SELECT_PAYMENT_LABEL);
+    
+    // self.view.translatesAutoresizingMaskIntoConstraints = false;
+    // self.view.backgroundColor = [UIColor clearColor];
+    
+    // self.scrollView = [[UIScrollView alloc] init];
+    // self.scrollView.translatesAutoresizingMaskIntoConstraints = NO;
+    // [self.scrollView setAlwaysBounceVertical:NO];
+    // self.scrollView.scrollEnabled = YES;
+    // [self.view addSubview:self.scrollView];
+    
+    // self.scrollViewContentWrapper = [[UIView alloc] init];
+    // self.scrollViewContentWrapper.translatesAutoresizingMaskIntoConstraints = NO;
+    // [self.scrollView addSubview:self.scrollViewContentWrapper];
+    
+    // self.stackView = [self newStackView];
+    // [self.scrollViewContentWrapper addSubview:self.stackView];
+    
+    // self.view.translatesAutoresizingMaskIntoConstraints = false;
+    // self.view.backgroundColor = [UIColor clearColor];
+    
+    // NSDictionary *viewBindings = @{@"stackView": self.stackView,
+    //                                @"scrollView": self.scrollView,
+    //                                @"scrollViewContentWrapper": self.scrollViewContentWrapper};
+    
+    // [self.scrollView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor].active = YES;
+    // [self.scrollView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor].active = YES;
+    
+    // [self.scrollView.topAnchor constraintEqualToAnchor:self.view.topAnchor].active = YES;
+    // [self.scrollView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor].active = YES;
+    
+    // [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[scrollViewContentWrapper]|"
+    //                                                                   options:0
+    //                                                                   metrics:[BTUIKAppearance metrics]
+    //                                                                     views:viewBindings]];
+    // [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[scrollViewContentWrapper(scrollView)]|"
+    //                                                                   options:0
+    //                                                                   metrics:[BTUIKAppearance metrics]
+    //                                                                     views:viewBindings]];
+    
+    // [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-(0)-[stackView]|"
+    //                                                                   options:0
+    //                                                                   metrics:[BTUIKAppearance metrics]
+    //                                                                     views:viewBindings]];
+    
+    // [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(VERTICAL_SECTION_SPACE)-[stackView]-(VERTICAL_FORM_SPACE_TIGHT)-|"
+    //                                                                   options:0
+    //                                                                   metrics:[BTUIKAppearance metrics]
+    //                                                                     views:viewBindings]];
+    
+    // NSLayoutConstraint *heightConstraint;
+    // self.vaultedPaymentsHeader = [self sectionHeaderLabelWithString:BTUIKLocalizedString(RECENT_LABEL)];
+    // self.vaultedPaymentsHeader.translatesAutoresizingMaskIntoConstraints = NO;
+
+    // self.vaultedPaymentsLabelContainerStackView = [self newStackView];
+    // self.vaultedPaymentsLabelContainerStackView.axis  = UILayoutConstraintAxisHorizontal;
+    // self.vaultedPaymentsLabelContainerStackView.layoutMargins = UIEdgeInsetsMake(0, [BTUIKAppearance horizontalFormContentPadding], 0, [BTUIKAppearance horizontalFormContentPadding]);
+    // self.vaultedPaymentsLabelContainerStackView.layoutMarginsRelativeArrangement = true;
+
+    // [self.vaultedPaymentsLabelContainerStackView addArrangedSubview:self.vaultedPaymentsHeader];
+
+    // self.vaultedPaymentsEditButton = [UIButton new];
+    // self.vaultedPaymentsEditButton.hidden = YES;
+    // NSAttributedString *normalVaultedPaymentsEditButton = [[NSAttributedString alloc] initWithString:BTUIKLocalizedString(EDIT_ACTION)
+    //                                                                                       attributes:@{NSForegroundColorAttributeName:[BTUIKAppearance sharedInstance].tintColor,
+    //                                                                                                    NSFontAttributeName:[[BTUIKAppearance sharedInstance].font fontWithSize:UIFont.systemFontSize]}];
+    // [self.vaultedPaymentsEditButton setAttributedTitle:normalVaultedPaymentsEditButton forState:UIControlStateNormal];
+    // NSAttributedString *highlightVaultedPaymentsEditButton = [[NSAttributedString alloc] initWithString:BTUIKLocalizedString(EDIT_ACTION)
+    //                                                                                          attributes:@{NSForegroundColorAttributeName:[BTUIKAppearance sharedInstance].highlightedTintColor,
+    //                                                                                                       NSFontAttributeName:[[BTUIKAppearance sharedInstance].font fontWithSize:UIFont.systemFontSize]}];
+    // [self.vaultedPaymentsEditButton setAttributedTitle:highlightVaultedPaymentsEditButton forState:UIControlStateHighlighted];
+    // NSAttributedString *disabledVaultedPaymentsEditButton = [[NSAttributedString alloc] initWithString:BTUIKLocalizedString(EDIT_ACTION)
+    //                                                                                         attributes:@{NSForegroundColorAttributeName:[BTUIKAppearance sharedInstance].disabledColor,
+    //                                                                                                      NSFontAttributeName:[[BTUIKAppearance sharedInstance].font fontWithSize:UIFont.systemFontSize]}];
+    // [self.vaultedPaymentsEditButton setAttributedTitle:disabledVaultedPaymentsEditButton forState:UIControlStateDisabled];
+    // [self.vaultedPaymentsEditButton sizeToFit];
+    // [self.vaultedPaymentsEditButton layoutIfNeeded];
+    // [self.vaultedPaymentsEditButton addTarget:self action:@selector(vaultedPaymentsEditButtonPressed) forControlEvents:UIControlEventTouchUpInside];
+    // [self.vaultedPaymentsLabelContainerStackView addArrangedSubview:self.vaultedPaymentsEditButton];
+
+    // [self.stackView addArrangedSubview:self.vaultedPaymentsLabelContainerStackView];
+    // _vaultedCardAppearAnalyticSent = NO;
+
+    // UICollectionViewFlowLayout *flowLayout = [[UICollectionViewFlowLayout alloc] init];
+    // [flowLayout setScrollDirection: UICollectionViewScrollDirectionHorizontal];
+    // self.savedPaymentMethodsCollectionView = [[UICollectionView alloc] initWithFrame:CGRectZero collectionViewLayout:flowLayout];
+    // self.savedPaymentMethodsCollectionView.translatesAutoresizingMaskIntoConstraints = NO;
+    // self.savedPaymentMethodsCollectionView.delegate = self;
+    // self.savedPaymentMethodsCollectionView.dataSource = self;
+    // [self.savedPaymentMethodsCollectionView registerClass:[BTUIPaymentMethodCollectionViewCell class] forCellWithReuseIdentifier:@"BTUIPaymentMethodCollectionViewCellIdentifier"];
+    // self.savedPaymentMethodsCollectionView.backgroundColor = [UIColor clearColor];
+    // self.savedPaymentMethodsCollectionView.showsHorizontalScrollIndicator = NO;
+    // heightConstraint = [self.savedPaymentMethodsCollectionView.heightAnchor constraintEqualToConstant:SAVED_PAYMENT_METHODS_COLLECTION_HEIGHT + [BTUIKAppearance verticalFormSpace]];
+    // // Setting the prioprity is necessary to avoid autolayout errors when UIStackView rotates
+    // heightConstraint.priority = UILayoutPriorityDefaultHigh;
+    // heightConstraint.active = YES;
+    // [self.stackView addArrangedSubview:self.savedPaymentMethodsCollectionView];
+
+    // self.paymentOptionsHeader = [self sectionHeaderLabelWithString:BTUIKLocalizedString(OTHER_LABEL)];
+    // self.paymentOptionsHeader.translatesAutoresizingMaskIntoConstraints = NO;
+
+    // self.paymentOptionsLabelContainerStackView = [self newStackView];
+    // self.paymentOptionsLabelContainerStackView.layoutMargins = UIEdgeInsetsMake(0, [BTUIKAppearance horizontalFormContentPadding], 0, [BTUIKAppearance horizontalFormContentPadding]);
+
+    // self.paymentOptionsLabelContainerStackView.layoutMarginsRelativeArrangement = true;
+
+    // [self.paymentOptionsLabelContainerStackView addArrangedSubview:self.paymentOptionsHeader];
+    // [self addSpacerToStackView:self.paymentOptionsLabelContainerStackView size:[BTUIKAppearance verticalFormSpaceTight] beforeView:nil];
+    // [self.stackView addArrangedSubview:self.paymentOptionsLabelContainerStackView];
+    
+    // self.paymentOptionsTableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
+    // [self.paymentOptionsTableView addObserver:self forKeyPath:@"contentSize" options:0 context:NULL];
+    // self.paymentOptionsTableView.backgroundColor = [UIColor clearColor];
+    // [self.paymentOptionsTableView registerClass:[BTDropInPaymentSeletionCell class] forCellReuseIdentifier:@"BTDropInPaymentSeletionCell"];
+    // self.paymentOptionsTableView.translatesAutoresizingMaskIntoConstraints = NO;
+    // self.paymentOptionsTableView.delegate = self;
+    // self.paymentOptionsTableView.dataSource = self;
+    // self.paymentOptionsTableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    // [self.paymentOptionsTableView setAlwaysBounceVertical:NO];
+
+    //[self.stackView addArrangedSubview:self.paymentOptionsTableView];
     
     [self loadConfiguration];
 }
@@ -274,7 +309,8 @@ static BOOL _vaultedCardAppearAnalyticSent = NO;
 
                 [self sendVaultedCardAppearAnalytic];
             }
-            [self showLoadingScreen:NO];
+            [self showLoadingScreen:YES];
+            self.stackView.hidden = NO;
             [self.view layoutIfNeeded];
             if (self.delegate) {
                 [self.delegate sheetHeightDidChange:self];
@@ -445,7 +481,7 @@ static BOOL _vaultedCardAppearAnalyticSent = NO;
     BTDropInPaymentSeletionCell *cell = [tableView dequeueReusableCellWithIdentifier:simpleTableIdentifier forIndexPath:indexPath];
 
     cell.accessoryType = UITableViewCellAccessoryNone;
-    cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+   // cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     BTUIKPaymentOptionType option = ((NSNumber*)self.paymentOptionsData[indexPath.row]).intValue;
 
     cell.detailLabel.text = @"";

@@ -134,11 +134,16 @@
      forState:UIControlStateNormal];
     if ([BTUIKAppearance sharedInstance].tintColor != nil) {
         self.view.tintColor = [BTUIKAppearance sharedInstance].tintColor;
+        
+        UITapGestureRecognizer *singleFingerTap =
+        [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                action:@selector(cancelHit:)];
+
+        [self.view addGestureRecognizer:singleFingerTap];
     }
     self.view.opaque = NO;
     self.view.backgroundColor = [BTUIKAppearance sharedInstance].overlayColor;
     self.view.userInteractionEnabled = YES;
-    
     
     self.contentView = [[UIView alloc] init];
     self.contentView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -157,12 +162,19 @@
     self.btToolbar = [[UIToolbar alloc] init];
     self.btToolbar.delegate = self;
     self.btToolbar.userInteractionEnabled = YES;
-    self.btToolbar.barStyle = UIBarStyleDefault;
+
+
+    //self.btToolbar.barStyle = UIBarStyleDefault;
     self.btToolbar.translucent = YES;
     self.btToolbar.backgroundColor = [UIColor clearColor];
     [self.btToolbar setBackgroundImage:[UIImage new] forToolbarPosition:UIBarPositionAny barMetrics:UIBarMetricsDefault];
     self.btToolbar.barTintColor = [UIColor clearColor];
     self.btToolbar.translatesAutoresizingMaskIntoConstraints = NO;
+
+    self.btToolbar.opaque = NO;
+    self.btToolbar.hidden = YES;
+    self.btToolbar.tintColor = [UIColor clearColor];
+
     [self.contentView addSubview:self.btToolbar];
     
     UIBlurEffect *contentEffect = [UIBlurEffect effectWithStyle:[BTUIKAppearance sharedInstance].blurStyle];
@@ -549,6 +561,14 @@
         navController.modalPresentationStyle = UIModalPresentationOverCurrentContext;
     }
     [self presentViewController:navController animated:YES completion:nil];
+}
+
+- (void)cancelEvent {
+    BTDropInResult *result = [[BTDropInResult alloc] init];
+    result.cancelled = YES;
+    if (self.handler) {
+        self.handler(self, result, nil);
+    }
 }
 
 #pragma mark UIViewControllerTransitioningDelegate

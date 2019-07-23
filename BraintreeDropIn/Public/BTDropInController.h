@@ -48,6 +48,8 @@ typedef void (^BTDropInControllerHandler)(BTDropInController * _Nonnull controll
 /// @param sender The sender requesting the view be changed.
 - (void)editPaymentMethods:(id)sender;
 
+- (void)cancelEvent;
+
 @end
 
 NS_ASSUME_NONNULL_END
