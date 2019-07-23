@@ -35,4 +35,7 @@ EverybodyVenmo.mobileprovision
 
 *.pid
 
+BuildTest/
+Cartfile.resolved
+
 Carthage/
