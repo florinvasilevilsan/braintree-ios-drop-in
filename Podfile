@@ -8,6 +8,8 @@ workspace 'BraintreeDropIn.xcworkspace'
 target 'DropInDemo' do
   pod 'InAppSettingsKit'
 
+  pod "Braintree/Core", "~> 4.32"
+
   pod "BraintreeDropIn", :path => "./"
 
   pod 'Braintree/Apple-Pay'

@@ -25,7 +25,7 @@ Pod::Spec.new do |s|
 
   s.subspec "DropIn" do |s|
     s.source_files  = "BraintreeDropIn/**/*.{h,m}"
-    s.public_header_files = "BraintreeDropIn/Public/*.h"
+    s.public_header_files = "BraintreeDropIn/Public/**/*.h"
     s.frameworks = "UIKit"
     s.dependency "Braintree/Card", "~> 4.32"
     s.dependency "Braintree/Core", "~> 4.32"
